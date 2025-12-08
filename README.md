@@ -1,6 +1,6 @@
 # Tiny HMAC
 
-**Tiny HMAC** is a lightweight, configurable C library for computing HMACs using multiple SHA and SHA3 variants.  
+**Tiny HMAC** is a lightweight, configurable C library for computing HMACs using all SHA and SHA3 variants.  
 It builds on **[Tiny SHA](tiny-sha/)** — also available as a standalone project at https://github.com/0xNullll/tiny-sha — and allows optional direct use of Tiny SHA functions.
 
 ---
