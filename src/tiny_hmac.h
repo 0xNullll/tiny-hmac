@@ -1,3 +1,19 @@
+/*
+ * File: tiny_hmac.h
+ * Author: 0xNullll
+ * Description: This header provides the public interface for the Tiny HMAC library.
+ *              It defines context structs, function prototypes, feature flags,
+ *              and inline helpers for computing HMACs using all SHA and SHA-3 variants
+ *              provided by the Tiny SHA library:
+ *              SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA-512/224, SHA-512/256,
+ *              as well as SHA3-224, SHA3-256, SHA3-384, SHA3-512.
+ *              Supports one-shot HMAC computation, incremental update/finalize,
+ *              context cloning, optional heap allocation, and constant-time digest comparison.
+ *              Implementation is in tiny_hmac.c.
+ * License: MIT
+ */
+
+
 #ifndef TINY_HMAC_H
 #define TINY_HMAC_H
 

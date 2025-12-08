@@ -1,3 +1,15 @@
+/*
+ * File: tiny_hmac.c
+ * Author: 0xNullll
+ * Description: Implementation of the Tiny HMAC library.
+ *              Provides functions for initializing, updating, finalizing,
+ *              and computing HMACs over all SHA and SHA-3 variants supported
+ *              by the Tiny SHA library. Supports one-shot HMAC computation,
+ *              incremental updates, context cloning, optional heap allocation
+ * License: MIT
+ */
+
+
 #define TINY_HMAC_IMPLEMENTATION
 
 #include "tiny_hmac.h"
@@ -33,7 +45,7 @@ static const struct _HMAC_TABLE{
     size_t digest_size; // Digest length in bytes
     size_t block_size;  // Internal block size
     size_t ctx_size;    // Size of hash context
-    
+
     bool (*hash_init)(void*);                           // Hash init function pointer
     bool (*hash_update)(void*, const uint8_t*, size_t); // Hash update pointer
     bool (*hash_final)(void*, uint8_t*, size_t);        // Hash final pointer
