@@ -143,6 +143,7 @@ typedef struct _HMAC_CTX {
 | `HMAC_Compute` | One-shot HMAC computation |
 | `HMAC_CloneCtx` | Clone an existing HMAC context into a destination context |
 | `HMAC_CloneCtxAlloc` | Clone an HMAC context into a new heap-allocated context |
+| `HMAC_ConstTimeCompareOrder` | Constant-time digest comparison returning ordering (-1,0,+1) |
 | `HMAC_DigestSize` | Get the digest size of a hash algorithm |
 | `HMAC_Name` | Get the human-readable name of the algorithm |
 
@@ -180,5 +181,5 @@ int main() {
 
 ## License
 
-This project is released under the **MIT License**. See `LICENSE` for full text.
+This project is released under the **MIT License**. See [LICENSE](LICENSE) for full text.
 
