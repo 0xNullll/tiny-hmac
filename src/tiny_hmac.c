@@ -20,6 +20,15 @@ static FORCE_INLINE int is_sha3(int id) {
     return 0;
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4054 4055) // for pointer conversion
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
+
+
 static const struct _HMAC_TABLE{
     hmac_alg_t alg;
     size_t digest_size;
@@ -118,6 +127,12 @@ static const struct _HMAC_TABLE{
       (bool(*)(void*, uint8_t*, size_t))SHA3_512Squeeze },
 #endif
 };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 // Return pointer to algorithm info or NULL if not found
 static const typeof(HMAC_TABLE[0])* HMAC_Lookup(hmac_alg_t alg) {
@@ -383,7 +398,7 @@ HMAC_CTX *HMAC_CloneCtxAlloc(const HMAC_CTX *ctx_src) {
     // Use the in-place clone function
     bool ret = HMAC_CloneCtx(ctx_dest, ctx_src);
     if (ret != true) {
-        memset(ctx_dest, 0, sizeof(ctx_dest));
+        memset(ctx_dest, 0, sizeof(*ctx_dest));
         free(ctx_dest);
         return NULL;
     }

@@ -181,7 +181,6 @@ static FORCE_INLINE bool HMAC_Compute(hmac_alg_t alg,
                                 const uint8_t *key, size_t key_len,
                                 const uint8_t *data, size_t data_len,
                                 uint8_t *digest, size_t digest_len) {
-    bool result = false;
     HMAC_CTX ctx;
 
     // Initialize the HMAC context
