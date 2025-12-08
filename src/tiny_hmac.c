@@ -20,174 +20,139 @@ static FORCE_INLINE int is_sha3(int id) {
     return 0;
 }
 
+static const struct _HMAC_TABLE{
+    hmac_alg_t alg;
+    size_t digest_size;
+    size_t block_size;
+    size_t ctx_size;
+    bool (*hash_init)(void*);
+    bool (*hash_update)(void*, const uint8_t*, size_t);
+    bool (*hash_final)(void*, uint8_t*, size_t);
+    bool (*hash_squeeze)(void*, uint8_t*, size_t);
+} HMAC_TABLE[] = {
+#if ENABLE_SHA1
+    { HMAC_SHA1, SHA1_DIGEST_SIZE, SHA1_BLOCK_SIZE, sizeof(SHA1_CTX),
+      (bool(*)(void*))SHA1Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA1Update,
+      (bool(*)(void*, uint8_t*, size_t))SHA1Final,
+      NULL },
+#endif
+
+#if ENABLE_SHA224
+    { HMAC_SHA224, SHA224_DIGEST_SIZE, SHA224_BLOCK_SIZE, sizeof(SHA224_CTX),
+      (bool(*)(void*))SHA224Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA224Update,
+      (bool(*)(void*, uint8_t*, size_t))SHA224Final,
+      NULL },
+#endif
+
+#if ENABLE_SHA256
+    { HMAC_SHA256, SHA256_DIGEST_SIZE, SHA256_BLOCK_SIZE, sizeof(SHA256_CTX),
+      (bool(*)(void*))SHA256Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA256Update,
+      (bool(*)(void*, uint8_t*, size_t))SHA256Final,
+      NULL },
+#endif
+
+#if ENABLE_SHA384
+    { HMAC_SHA384, SHA384_DIGEST_SIZE, SHA384_BLOCK_SIZE, sizeof(SHA384_CTX),
+      (bool(*)(void*))SHA384Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA384Update,
+      (bool(*)(void*, uint8_t*, size_t))SHA384Final,
+      NULL },
+#endif
+
+#if ENABLE_SHA512
+    { HMAC_SHA512, SHA512_DIGEST_SIZE, SHA512_BLOCK_SIZE, sizeof(SHA512_CTX),
+      (bool(*)(void*))SHA512Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA512Update,
+      (bool(*)(void*, uint8_t*, size_t))SHA512Final,
+      NULL },
+#endif
+
+#if ENABLE_SHA512_224
+    { HMAC_SHA512_224, SHA512_224_DIGEST_SIZE, SHA512_224_BLOCK_SIZE, sizeof(SHA512_224_CTX),
+      (bool(*)(void*))SHA512_224Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA512_224Update,
+      (bool(*)(void*, uint8_t*, size_t))SHA512_224Final,
+      NULL },
+#endif
+
+#if ENABLE_SHA512_256
+    { HMAC_SHA512_256, SHA512_256_DIGEST_SIZE, SHA512_256_BLOCK_SIZE, sizeof(SHA512_256_CTX),
+      (bool(*)(void*))SHA512_256Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA512_256Update,
+      (bool(*)(void*, uint8_t*, size_t))SHA512_256Final,
+      NULL },
+#endif
+
+#if ENABLE_SHA3_224
+    { HMAC_SHA3_224, SHA3_224_DIGEST_SIZE, SHA3_224_BLOCK_SIZE, sizeof(SHA3_224_CTX),
+      (bool(*)(void*))SHA3_224Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA3_224Absorb,
+      (bool(*)(void*, uint8_t*, size_t))SHA3_224Final,
+      (bool(*)(void*, uint8_t*, size_t))SHA3_224Squeeze },
+#endif
+
+#if ENABLE_SHA3_256
+    { HMAC_SHA3_256, SHA3_256_DIGEST_SIZE, SHA3_256_BLOCK_SIZE, sizeof(SHA3_256_CTX),
+      (bool(*)(void*))SHA3_256Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA3_256Absorb,
+      (bool(*)(void*, uint8_t*, size_t))SHA3_256Final,
+      (bool(*)(void*, uint8_t*, size_t))SHA3_256Squeeze },
+#endif
+
+#if ENABLE_SHA3_384
+    { HMAC_SHA3_384, SHA3_384_DIGEST_SIZE, SHA3_384_BLOCK_SIZE, sizeof(SHA3_384_CTX),
+      (bool(*)(void*))SHA3_384Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA3_384Absorb,
+      (bool(*)(void*, uint8_t*, size_t))SHA3_384Final,
+      (bool(*)(void*, uint8_t*, size_t))SHA3_384Squeeze },
+#endif
+
+#if ENABLE_SHA3_512
+    { HMAC_SHA3_512, SHA3_512_DIGEST_SIZE, SHA3_512_BLOCK_SIZE, sizeof(SHA3_512_CTX),
+      (bool(*)(void*))SHA3_512Init,
+      (bool(*)(void*, const uint8_t*, size_t))SHA3_512Absorb,
+      (bool(*)(void*, uint8_t*, size_t))SHA3_512Final,
+      (bool(*)(void*, uint8_t*, size_t))SHA3_512Squeeze },
+#endif
+};
+
+// Return pointer to algorithm info or NULL if not found
+static const typeof(HMAC_TABLE[0])* HMAC_Lookup(hmac_alg_t alg) {
+    size_t count = sizeof(HMAC_TABLE) / sizeof(HMAC_TABLE[0]);
+    for (size_t i = 0; i < count; i++) {
+        if (HMAC_TABLE[i].alg == alg)
+            return &HMAC_TABLE[i];
+    }
+    return NULL;
+}
+
 
 bool HMAC_Init(HMAC_CTX *ctx, hmac_alg_t alg, const uint8_t *key, size_t key_len) {
     if (!ctx || !key || key_len == 0 || key_len > MAX_HMAC_KEY_SIZE)
         return false;
 
+    const struct _HMAC_TABLE *info = HMAC_Lookup(alg);
+    if (!info)
+        return false;
+
     ctx->alg = alg;
+    ctx->out_len = info->digest_size;
+    ctx->ctx_block_size = info->block_size;
+    ctx->ctx_buf_size = info->ctx_size;
 
-    switch (alg) {
-#if ENABLE_SHA1
-        case HMAC_SHA1:
-            ctx->out_len = SHA1_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA1_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA1_CTX));
-            ctx->ctx_buf_size = sizeof(SHA1_CTX);
-            ctx->ctx_block_size  = SHA1_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA1Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA1Update;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA1Final;
-            ctx->hash_squeeze = NULL;  // SHA-1 does not need squeeze
-            break;
-#endif
-#if ENABLE_SHA224
-        case HMAC_SHA224:
-            ctx->out_len = SHA224_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA224_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA224_CTX));
-            ctx->ctx_buf_size = sizeof(SHA224_CTX);
-            ctx->ctx_block_size  = SHA224_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA224Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA224Update;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA224Final;
-            ctx->hash_squeeze = NULL;  // SHA-2 does not need squeeze
-            break;
-#endif
-#if ENABLE_SHA256
-        case HMAC_SHA256:
-            ctx->out_len = SHA256_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA256_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA256_CTX));
-            ctx->ctx_buf_size = sizeof(SHA256_CTX);
-            ctx->ctx_block_size  = SHA256_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA256Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA256Update;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA256Final;
-            ctx->hash_squeeze = NULL;  // SHA-2 does not need squeeze
-            break;
-#endif
-#if ENABLE_SHA384
-        case HMAC_SHA384:
-            ctx->out_len = SHA384_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA384_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA384_CTX));
-            ctx->ctx_buf_size = sizeof(SHA384_CTX);
-            ctx->ctx_block_size  = SHA384_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA384Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA384Update;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA384Final;
-            ctx->hash_squeeze = NULL;  // SHA-2 does not need squeeze
-            break;
-#endif
-#if ENABLE_SHA512
-        case HMAC_SHA512:
-            ctx->out_len = SHA512_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA512_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA512_CTX));
-            ctx->ctx_buf_size = sizeof(SHA512_CTX);
-            ctx->ctx_block_size  = SHA512_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA512Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA512Update;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA512Final;
-            ctx->hash_squeeze = NULL;  // SHA-2 does not need squeeze
-            break;
-#endif
-#if ENABLE_SHA512_224
-        case HMAC_SHA512_224:
-            ctx->out_len = SHA512_224_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA512_224_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA512_224_CTX));
-            ctx->ctx_buf_size = sizeof(SHA512_224_CTX);
-            ctx->ctx_block_size  = SHA512_224_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA512_224Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA512_224Update;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA512_224Final;
-            ctx->hash_squeeze = NULL;  // SHA-2 does not need squeeze
-            break;
-#endif
-#if ENABLE_SHA512_256
-        case HMAC_SHA512_256:
-            ctx->out_len = SHA512_256_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA512_256_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA512_256_CTX));
-            ctx->ctx_buf_size = sizeof(SHA512_256_CTX);
-            ctx->ctx_block_size  = SHA512_256_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA512_256Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA512_256Update;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA512_256Final;
-            ctx->hash_squeeze = NULL;  // SHA-2 does not need squeeze
-            break;
-#endif
-#if ENABLE_SHA3_224
-        case HMAC_SHA3_224:
-            ctx->out_len = SHA3_224_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA3_224_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA3_224_CTX));
-            ctx->ctx_buf_size = sizeof(SHA3_224_CTX);
-            ctx->ctx_block_size  = SHA3_224_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA3_224Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA3_224Absorb;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA3_224Final;
-            ctx->hash_squeeze = (bool (*)(void*, uint8_t*, size_t))SHA3_224Squeeze;
-            break;
-#endif
-#if ENABLE_SHA3_256
-        case HMAC_SHA3_256:
-            ctx->out_len = SHA3_256_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA3_256_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA3_256_CTX));
-            ctx->ctx_buf_size = sizeof(SHA3_256_CTX);
-            ctx->ctx_block_size  = SHA3_256_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA3_256Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA3_256Absorb;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA3_256Final;
-            ctx->hash_squeeze = (bool (*)(void*, uint8_t*, size_t))SHA3_256Squeeze;
-            break;
-#endif
-#if ENABLE_SHA3_384
-        case HMAC_SHA3_384:
-            ctx->out_len = SHA3_384_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA3_384_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA3_384_CTX));
-            ctx->ctx_buf_size = sizeof(SHA3_384_CTX);
-            ctx->ctx_block_size  = SHA3_384_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA3_384Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA3_384Absorb;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA3_384Final;
-            ctx->hash_squeeze = (bool (*)(void*, uint8_t*, size_t))SHA3_384Squeeze;
-            break;
-#endif
-#if ENABLE_SHA3_512
-        case HMAC_SHA3_512:
-            ctx->out_len = SHA3_512_DIGEST_SIZE;
-            ctx->ipad_ctx = malloc(sizeof(SHA3_512_CTX));
-            ctx->opad_ctx = malloc(sizeof(SHA3_512_CTX));
-            ctx->ctx_buf_size = sizeof(SHA3_512_CTX);
-            ctx->ctx_block_size  = SHA3_512_BLOCK_SIZE;
-
-            ctx->hash_init   = (bool (*)(void*))SHA3_512Init;
-            ctx->hash_update = (bool (*)(void*, const uint8_t*, size_t))SHA3_512Absorb;
-            ctx->hash_final  = (bool (*)(void*, uint8_t*, size_t))SHA3_512Final;
-            ctx->hash_squeeze = (bool (*)(void*, uint8_t*, size_t))SHA3_512Squeeze;
-            break;
-#endif
-        default:
-            return false;
-    }
+    ctx->ipad_ctx = malloc(info->ctx_size);
+    ctx->opad_ctx = malloc(info->ctx_size);
 
     if (!ctx->ipad_ctx || !ctx->opad_ctx)
         return false;
+
+    ctx->hash_init    = info->hash_init;
+    ctx->hash_update  = info->hash_update;
+    ctx->hash_final   = info->hash_final;
+    ctx->hash_squeeze = info->hash_squeeze;
 
     // normalize key
     if (key_len > ctx->ctx_block_size) {
@@ -236,13 +201,13 @@ cleanup:
     if (ctx->ipad_ctx) {
         memset(ctx->ipad_ctx, 0, ctx->ctx_buf_size);
         free(ctx->ipad_ctx);
-        ctx->ipad_ctx == NULL;
+        ctx->ipad_ctx = NULL;
     }
 
     if (ctx->opad_ctx) {
         memset(ctx->opad_ctx, 0, ctx->ctx_buf_size);
         free(ctx->opad_ctx);
-        ctx->opad_ctx == NULL;
+        ctx->opad_ctx = NULL;
     }
 
     return false;
@@ -257,7 +222,7 @@ HMAC_CTX* HMAC_InitAlloc(hmac_alg_t alg, const uint8_t *key, size_t key_len) {
     bool st = HMAC_Init(ctx, alg, key, key_len);
     if (st != true) {
         free(ctx);
-        ctx == NULL;
+        ctx = NULL;
         return NULL;
     }
 
