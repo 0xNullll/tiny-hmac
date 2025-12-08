@@ -149,6 +149,24 @@ typedef struct _HMAC_CTX {
 
 ---
 
+## Output Sizes
+
+| Algorithm           | Digest Size |
+|---------------------|-------------|
+| HMAC-SHA-1          | 20 bytes    |
+| HMAC-SHA-224        | 28 bytes    |
+| HMAC-SHA-256        | 32 bytes    |
+| HMAC-SHA-384        | 48 bytes    |
+| HMAC-SHA-512        | 64 bytes    |
+| HMAC-SHA-512/224    | 28 bytes    |
+| HMAC-SHA-512/256    | 32 bytes    |
+| HMAC-SHA3-224       | 28 bytes    |
+| HMAC-SHA3-256       | 32 bytes    |
+| HMAC-SHA3-384       | 48 bytes    |
+| HMAC-SHA3-512       | 64 bytes    |
+
+---
+
 ## Example
 
 ```c
