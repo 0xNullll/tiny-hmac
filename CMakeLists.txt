@@ -26,3 +26,8 @@ if(MSVC)
 else()
     target_compile_options(hmac_test PRIVATE -Wall -Wextra -O2 -Wno-cast-function-type)
 endif()
+
+# Optional: output directory for the binary
+set_target_properties(hmac_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)

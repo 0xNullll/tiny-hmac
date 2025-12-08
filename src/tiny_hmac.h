@@ -88,6 +88,10 @@ extern "C" {
 #define TSHASH_PREFIX /* empty by default */
 #endif
 
+#define _TS_CAT(a,b) a##b
+#define _TS_CAT2(a,b) _TS_CAT(a,b)
+#define TSHASH_FN(name) _TS_CAT2(TSHASH_PREFIX, name)
+
 #include "../tiny-sha/src/tiny_sha.h"
 
 typedef enum {
@@ -157,6 +161,18 @@ typedef struct _HMAC_CTX {
 // ============================
 // HMAC low-level function prototypes
 // ============================
+#define HMAC_Init                       TSHASH_FN(HMAC_Init)
+#define HMAC_InitAlloc                  TSHASH_FN(HMAC_InitAlloc)
+#define HMAC_Update                     TSHASH_FN(HMAC_Update)
+#define HMAC_Final                      TSHASH_FN(HMAC_Final)
+#define HMAC_Free                       TSHASH_FN(HMAC_Free)
+#define HMAC_FreeAlloc                  TSHASH_FN(HMAC_FreeAlloc)
+#define HMAC_Compute                    TSHASH_FN(HMAC_Compute)
+#define HMAC_CloneCtx                   TSHASH_FN(HMAC_CloneCtx)
+#define HMAC_CloneCtxAlloc              TSHASH_FN(HMAC_CloneCtxAlloc)
+#define HMAC_ConstTimeCompareOrder      TSHASH_FN(HMAC_ConstTimeCompareOrder)
+#define HMAC_DigestSize                 TSHASH_FN(HMAC_DigestSize)
+#define HMAC_Name                       TSHASH_FN(HMAC_Name)
 
 bool HMAC_Init(HMAC_CTX *ctx, hmac_alg_t alg, const uint8_t *key, size_t key_len);
 
@@ -214,6 +230,57 @@ bool HMAC_CloneCtx(HMAC_CTX *ctx_dest, const HMAC_CTX *ctx_src);
 // Clone HMAC context and allocate a new heap context
 HMAC_CTX *HMAC_CloneCtxAlloc(const HMAC_CTX *ctx_src);
 
+/* ------------------------------------------------------------------
+ * Constant Time lexicographic comparator
+ * Returns: -1 if a < b, 0 if a == b, +1 if a > b
+ *
+ * Notes:
+ *  - Scans the whole buffer (no early return).
+ *  - Uses only integer/bit ops; no data-dependent branches.
+ *  - Works for any length up to size_t.
+ * ------------------------------------------------------------------ */
+static FORCE_INLINE int HMAC_ConstTimeCompareOrder(const uint8_t *a, const uint8_t *b, hmac_alg_t alg) {
+    if (!a || !b)
+        return 0;
+
+        /* this function record whether it had already seen a difference (seen),
+        * and record whether that first difference indicated a<b (lt)
+        * or a>b (gt).  At the end result = gt - lt -> {1,0,-1}. */
+        size_t len = HMAC_DigestSize(alg);
+        if (len == 0) return 0;
+        
+        uint32_t lt = 0;
+        uint32_t gt = 0;
+        uint32_t seen = 0;
+        
+        for (size_t i = 0; i < len; ++i) {
+                /* Work with zero-extended 16-bit values to compute borrow on subtraction:
+                * If ai < bi then (uint16_t)(ai - bi) will underflow and its top bit (bit 15)
+                * will be 1. */
+                uint16_t ai = (uint16_t)a[i];
+                uint16_t bi = (uint16_t)b[i];
+
+                uint16_t d1 = (uint16_t)(ai - bi); /* top bit 1 if ai < bi */
+                uint16_t d2 = (uint16_t)(bi - ai); /* top bit 1 if bi < ai */
+
+                uint32_t is_lt = (uint32_t)(d1 >> 15); /* 1 if ai < bi else 0 */
+                uint32_t is_gt = (uint32_t)(d2 >> 15); /* 1 if ai > bi else 0 */
+
+                uint32_t diff = is_lt | is_gt;         /* 1 iff bytes differ at this position */
+                uint32_t new_diff_mask = (~seen) & diff; /* 1 iff this is the first differing byte */
+
+                /* Only set lt/gt from the first differing byte; subsequent bytes ignored. */
+                lt |= is_lt & new_diff_mask;
+                gt |= is_gt & new_diff_mask;
+
+                /* mark we have seen a difference (once set it stays set) */
+                seen |= diff;
+        }
+
+        /* result: 1 if gt set, -1 if lt set, 0 otherwise.
+        * Compute without branching. */
+        return (int)gt - (int)lt;
+}
 
 static size_t HMAC_DigestSize(hmac_alg_t alg) {
     switch (alg) {

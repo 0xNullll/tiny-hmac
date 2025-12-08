@@ -29,14 +29,15 @@ static FORCE_INLINE int is_sha3(int id) {
 #endif
 
 static const struct _HMAC_TABLE{
-    hmac_alg_t alg;
-    size_t digest_size;
-    size_t block_size;
-    size_t ctx_size;
-    bool (*hash_init)(void*);
-    bool (*hash_update)(void*, const uint8_t*, size_t);
-    bool (*hash_final)(void*, uint8_t*, size_t);
-    bool (*hash_squeeze)(void*, uint8_t*, size_t);
+    hmac_alg_t alg;     // Algorithm identifier
+    size_t digest_size; // Digest length in bytes
+    size_t block_size;  // Internal block size
+    size_t ctx_size;    // Size of hash context
+    
+    bool (*hash_init)(void*);                           // Hash init function pointer
+    bool (*hash_update)(void*, const uint8_t*, size_t); // Hash update pointer
+    bool (*hash_final)(void*, uint8_t*, size_t);        // Hash final pointer
+    bool (*hash_squeeze)(void*, uint8_t*, size_t);      // Hash squeeze pointe
 } HMAC_TABLE[] = {
 #if ENABLE_SHA1
     { HMAC_SHA1, SHA1_DIGEST_SIZE, SHA1_BLOCK_SIZE, sizeof(SHA1_CTX),
