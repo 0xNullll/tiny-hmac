@@ -111,7 +111,29 @@ typedef enum {
     HMAC_SHA384, HMAC_SHA512, HMAC_SHA512_224, HMAC_SHA512_256,
     HMAC_SHA3_224, HMAC_SHA3_256, HMAC_SHA3_384, HMAC_SHA3_512
 } hmac_alg_t;
+```
 
+## Output Sizes
+
+| Algorithm           | Digest Size |
+|---------------------|-------------|
+| HMAC-SHA-1          | 20 bytes    |
+| HMAC-SHA-224        | 28 bytes    |
+| HMAC-SHA-256        | 32 bytes    |
+| HMAC-SHA-384        | 48 bytes    |
+| HMAC-SHA-512        | 64 bytes    |
+| HMAC-SHA-512/224    | 28 bytes    |
+| HMAC-SHA-512/256    | 32 bytes    |
+| HMAC-SHA3-224       | 28 bytes    |
+| HMAC-SHA3-256       | 32 bytes    |
+| HMAC-SHA3-384       | 48 bytes    |
+| HMAC-SHA3-512       | 64 bytes    |
+
+---
+
+## Context Structure
+
+```c
 typedef struct _HMAC_CTX {
     hmac_alg_t alg;
     void *ipad_ctx;
@@ -146,24 +168,6 @@ typedef struct _HMAC_CTX {
 | `HMAC_ConstTimeCompareOrder` | Constant-time digest comparison returning ordering (-1,0,+1) |
 | `HMAC_DigestSize` | Get the digest size of a hash algorithm |
 | `HMAC_Name` | Get the human-readable name of the algorithm |
-
----
-
-## Output Sizes
-
-| Algorithm           | Digest Size |
-|---------------------|-------------|
-| HMAC-SHA-1          | 20 bytes    |
-| HMAC-SHA-224        | 28 bytes    |
-| HMAC-SHA-256        | 32 bytes    |
-| HMAC-SHA-384        | 48 bytes    |
-| HMAC-SHA-512        | 64 bytes    |
-| HMAC-SHA-512/224    | 28 bytes    |
-| HMAC-SHA-512/256    | 32 bytes    |
-| HMAC-SHA3-224       | 28 bytes    |
-| HMAC-SHA3-256       | 32 bytes    |
-| HMAC-SHA3-384       | 48 bytes    |
-| HMAC-SHA3-512       | 64 bytes    |
 
 ---
 
