@@ -14,7 +14,7 @@ include_directories(
 set(SRC
     src/tiny_hmac.c
     tiny-sha/src/tiny_sha.c
-    src/hmac_test.c
+    test/hmac_test.c
 )
 
 # Output executable

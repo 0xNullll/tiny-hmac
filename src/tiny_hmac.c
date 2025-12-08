@@ -28,7 +28,6 @@ static FORCE_INLINE int is_sha3(int id) {
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #endif
 
-
 static const struct _HMAC_TABLE{
     hmac_alg_t alg;
     size_t digest_size;

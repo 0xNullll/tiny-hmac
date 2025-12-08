@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "tiny_hmac.h"
+#include "../src/tiny_hmac.h"
 
 // Print hex
 static void print_hex(const uint8_t *buf, size_t len) {
