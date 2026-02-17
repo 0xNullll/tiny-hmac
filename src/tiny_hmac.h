@@ -186,9 +186,9 @@ typedef struct _HMAC_CTX {
 #define HMAC_Compute                    TSHASH_FN(HMAC_Compute)
 #define HMAC_CloneCtx                   TSHASH_FN(HMAC_CloneCtx)
 #define HMAC_CloneCtxAlloc              TSHASH_FN(HMAC_CloneCtxAlloc)
-#define HMAC_ConstTimeCompareOrder      TSHASH_FN(HMAC_ConstTimeCompareOrder)
 #define HMAC_DigestSize                 TSHASH_FN(HMAC_DigestSize)
 #define HMAC_Name                       TSHASH_FN(HMAC_Name)
+#define HMAC_ConstTimeCompare           TSHASH_FN(HMAC_ConstTimeCompare)
 
 bool HMAC_Init(HMAC_CTX *ctx, hmac_alg_t alg, const uint8_t *key, size_t key_len);
 
@@ -245,58 +245,6 @@ bool HMAC_CloneCtx(HMAC_CTX *ctx_dest, const HMAC_CTX *ctx_src);
 
 // Clone HMAC context and allocate a new heap context
 HMAC_CTX *HMAC_CloneCtxAlloc(const HMAC_CTX *ctx_src);
-
-/* ------------------------------------------------------------------
- * Constant Time lexicographic comparator
- * Returns: -1 if a < b, 0 if a == b, +1 if a > b
- *
- * Notes:
- *  - Scans the whole buffer (no early return).
- *  - Uses only integer/bit ops; no data-dependent branches.
- *  - Works for any length up to size_t.
- * ------------------------------------------------------------------ */
-static FORCE_INLINE int HMAC_ConstTimeCompareOrder(const uint8_t *a, const uint8_t *b, hmac_alg_t alg) {
-    if (!a || !b)
-        return 0;
-
-        /* this function record whether it had already seen a difference (seen),
-        * and record whether that first difference indicated a<b (lt)
-        * or a>b (gt).  At the end result = gt - lt -> {1,0,-1}. */
-        size_t len = HMAC_DigestSize(alg);
-        if (len == 0) return 0;
-        
-        uint32_t lt = 0;
-        uint32_t gt = 0;
-        uint32_t seen = 0;
-        
-        for (size_t i = 0; i < len; ++i) {
-                /* Work with zero-extended 16-bit values to compute borrow on subtraction:
-                * If ai < bi then (uint16_t)(ai - bi) will underflow and its top bit (bit 15)
-                * will be 1. */
-                uint16_t ai = (uint16_t)a[i];
-                uint16_t bi = (uint16_t)b[i];
-
-                uint16_t d1 = (uint16_t)(ai - bi); /* top bit 1 if ai < bi */
-                uint16_t d2 = (uint16_t)(bi - ai); /* top bit 1 if bi < ai */
-
-                uint32_t is_lt = (uint32_t)(d1 >> 15); /* 1 if ai < bi else 0 */
-                uint32_t is_gt = (uint32_t)(d2 >> 15); /* 1 if ai > bi else 0 */
-
-                uint32_t diff = is_lt | is_gt;         /* 1 iff bytes differ at this position */
-                uint32_t new_diff_mask = (~seen) & diff; /* 1 iff this is the first differing byte */
-
-                /* Only set lt/gt from the first differing byte; subsequent bytes ignored. */
-                lt |= is_lt & new_diff_mask;
-                gt |= is_gt & new_diff_mask;
-
-                /* mark we have seen a difference (once set it stays set) */
-                seen |= diff;
-        }
-
-        /* result: 1 if gt set, -1 if lt set, 0 otherwise.
-        * Compute without branching. */
-        return (int)gt - (int)lt;
-}
 
 static size_t HMAC_DigestSize(hmac_alg_t alg) {
     switch (alg) {
@@ -376,6 +324,46 @@ static const char* HMAC_Name(hmac_alg_t alg) {
         default:
             return "UNKNOWN";
     }
+}
+
+/* ------------------------------------------------------------------
+ * Constant-Time Equality Comparator
+ * Compares two byte buffers in constant time to prevent timing attacks.
+ *
+ * Parameters:
+ *  - a: pointer to first buffer
+ *  - b: pointer to second buffer
+ *  - alg: HMAC algorithm (used to determine digest length)
+ *
+ * Returns:
+ *  - 1 if buffers are equal
+ *  - 0 if buffers differ or if a/b are NULL
+ *
+ * Notes:
+ *  - Entire buffer is scanned regardless of differences (no early return)
+ *  - Uses bitwise operations only, safe against timing attacks
+ *  - Includes compiler-specific memory barriers to prevent optimization
+ * ------------------------------------------------------------------ */
+static int HMAC_ConstTimeCompare(const uint8_t *a, const uint8_t *b, hmac_alg_t alg) {
+    if (!a || !b) return 0;
+
+    size_t len = HMAC_DigestSize(alg);
+    if (len == 0) return 0;
+
+    uint8_t diff = 0;
+    for (size_t i = 0; i < len; i++) {
+        diff |= a[i] ^ b[i];
+    }
+
+#if defined(__GNUC__) || defined(__clang__)
+    __asm__ volatile("" : "+r"(diff) : : "memory");
+#elif defined(_MSC_VER)
+    _ReadWriteBarrier();
+#else
+    (void)diff;
+#endif
+
+    return diff == 0;
 }
 
 #ifdef __cplusplus

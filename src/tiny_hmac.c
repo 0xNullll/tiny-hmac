@@ -147,7 +147,7 @@ static const struct _HMAC_TABLE{
 #endif
 
 // Return pointer to algorithm info or NULL if not found
-static const typeof(HMAC_TABLE[0])* HMAC_Lookup(hmac_alg_t alg) {
+static const struct _HMAC_TABLE* HMAC_Lookup(hmac_alg_t alg) {
     size_t count = sizeof(HMAC_TABLE) / sizeof(HMAC_TABLE[0]);
     for (size_t i = 0; i < count; i++) {
         if (HMAC_TABLE[i].alg == alg)
@@ -155,7 +155,6 @@ static const typeof(HMAC_TABLE[0])* HMAC_Lookup(hmac_alg_t alg) {
     }
     return NULL;
 }
-
 
 bool HMAC_Init(HMAC_CTX *ctx, hmac_alg_t alg, const uint8_t *key, size_t key_len) {
     if (!ctx || !key || key_len == 0 || key_len > MAX_HMAC_KEY_SIZE)

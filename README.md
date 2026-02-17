@@ -15,8 +15,9 @@ It builds on **[Tiny SHA](tiny-sha/)** — also available as a standalone projec
 - Context cloning and heap allocation support.
 - Function name prefixing for integration into larger projects.
 - Key size up to 512 bytes.
-- Safe Constant-time lexicographic HMAC comparison using 'HMAC_ConstTimeCompareOrder', returning -1/0/1 without leaking timing
-- Handles endianness automatically
+- Safe Constant-time HMAC equality comparison using `HMAC_ConstTimeCompare`, returning 1 if equal or 0 if different, without leaking timing.
+- Handles endianness automatically.
+- Lightweight — the compiled library stays under 30 KB.
 
 > SHA variants in Tiny SHA can also be used directly, but SHAKE and raw Keccak are disabled by default.
 
@@ -33,13 +34,63 @@ Before including the header, users can configure feature flags:
 #define TSHASH_PREFIX     mylib_ // optional prefix for exported functions
 ```
 
-You can also define it via compiler flags:
+You can also define it via compiler flags or CMake for build integration:
 
-```bash
-gcc -DTSHASH_PREFIX=MyLib_ -DTINY_SHA_IMPLEMENTATION tiny_sha.c test_sha.c -o test_sha
+```cmake
+target_compile_definitions(tiny_hmac_test PRIVATE
+    ENABLE_SHA1=1
+    ENABLE_SHA224=1
+    ENABLE_SHA256=1
+    ENABLE_SHA384=1
+    ENABLE_SHA512=1
+    ENABLE_SHA512_224=1
+    ENABLE_SHA512_256=1
+
+    ENABLE_SHA3_224=1
+    ENABLE_SHA3_256=1
+    ENABLE_SHA3_384=1
+    ENABLE_SHA3_512=1
+
+    TSHASH_PREFIX=MyLib  # optional function prefix
+)
 ```
 
 > ⚠️ Note: `TSHASH_PREFIX` must be defined **before including the header**. If not defined, functions will have no prefix (default behavior).
+
+---
+
+## Building with CMake
+
+1. Open a terminal and navigate to your project folder:
+
+```bash
+$ cd /path/to/repo/tiny-hmac
+```
+
+2. Create and enter the `build` directory:
+
+```bash
+$ mkdir build
+$ cd build
+```
+
+3. Configure the project:
+
+```bash
+$ cmake ..
+```
+
+4. Build the project (Release mode recommended):
+
+```bash
+$ cmake --build . --config Release
+```
+
+- The final binary will be located in:
+
+```
+$ build/bin/Release/hmac_test.exe
+```
 
 ---
 
@@ -113,7 +164,7 @@ typedef enum {
 } hmac_alg_t;
 ```
 
-## Output Sizes
+### Output Sizes
 
 | Algorithm           | Digest Size |
 |---------------------|-------------|
@@ -204,4 +255,3 @@ int main() {
 ## License
 
 This project is released under the **MIT License**. See [LICENSE](LICENSE) for full text.
-
