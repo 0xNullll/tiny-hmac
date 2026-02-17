@@ -7,10 +7,10 @@ It builds on **[Tiny SHA](tiny-sha/)** — also available as a standalone projec
 
 ## Features
 
-- Header-only and portable across C/C++ compilers.
 - Configurable HMAC support for multiple hash algorithms:
   - **SHA-1 / SHA-2**: SHA1, SHA224, SHA256, SHA384, SHA512, SHA512/224, SHA512/256
   - **SHA-3**: SHA3-224, SHA3-256, SHA3-384, SHA3-512
+- Separate implementation file (tiny_hmac.c) and header (tiny_hmac.h)
 - One-shot HMAC computation or incremental update/finalize interface.
 - Context cloning and heap allocation support.
 - Function name prefixing for integration into larger projects.
