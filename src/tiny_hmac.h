@@ -348,7 +348,7 @@ static int HMAC_ConstTimeCompare(const uint8_t *a, const uint8_t *b, hmac_alg_t 
     if (!a || !b) return 0;
 
     size_t len = HMAC_DigestSize(alg);
-    if (len == 0) return 0;
+    if (len == 0) return 1;
 
     uint8_t diff = 0;
     for (size_t i = 0; i < len; i++) {
