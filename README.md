@@ -55,7 +55,7 @@ target_compile_definitions(tiny_hmac_test PRIVATE
 )
 ```
 
-> ⚠️ Note: `TSHASH_PREFIX` must be defined **before including the header**. If not defined, functions will have no prefix (default behavior).
+> Note: `TSHASH_PREFIX` must be defined **before including the header**. If not defined, functions will have no prefix (default behavior).
 
 ---
 
